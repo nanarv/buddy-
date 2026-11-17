@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup view record ports test test-alert upload-sender upload-receiver
+.PHONY: help setup view record ports test test-alert upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test monitor
 
 UV ?= uv
 export PIO ?= $(if $(wildcard $(HOME)/.platformio/penv/bin/pio),$(HOME)/.platformio/penv/bin/pio,pio)
@@ -24,6 +24,10 @@ help:
 	  'make setup                        Install the locked Python dependencies' \
 	  'make upload-sender PORT=...       Build and flash the sensor-connected board' \
 	  'make upload-receiver PORT=...     Enable observer vibration by uploading receiver firmware' \
+	  'make upload-listener-test PORT=... Flash the piezo listener (src/listener_test.cpp)' \
+	  'make upload-beeper-test PORT=...  Flash the tone generator for the listener to hear' \
+	  'make upload-lora-test PORT=...    Flash the RFM96W LoRa test (see tools/LORA_TEST.md)' \
+	  'make monitor PORT=...             Interactive serial monitor (type t to send a LoRa packet)' \
 	  '' \
 	  'Vibration: wire the motor to the observer receiver GPIO27, then upload-receiver.' \
 	  'After a successful upload, valid SpO2 below the configured threshold (default 97%)' \
@@ -59,10 +63,20 @@ test-alert:
 # The target selects firmware; PORT must identify the physically correct board.
 # upload-receiver includes src/vibration.cpp: after successful upload the board
 # automatically drives the motor for valid low SpO2. view/record only read output.
-upload-sender upload-receiver:
+# Target hyphens map to environment underscores (upload-listener-test -> listener_test).
+upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test:
 	@if [ -z "$$PORT" ]; then \
 	  printf '%s\n' 'PORT is required for uploads. Run make ports, identify the board, then retry with PORT=...'; \
 	  exit 2; \
 	fi
-	@printf 'Uploading %s firmware to %s. Close serial monitors first.\n' '$(patsubst upload-%,%,$@)' "$$PORT"
-	@"$$PIO" run -e $(patsubst upload-%,%,$@) -t upload --upload-port "$$PORT"
+	@printf 'Uploading %s firmware to %s. Close serial monitors first.\n' '$(subst -,_,$(patsubst upload-%,%,$@))' "$$PORT"
+	@"$$PIO" run -e $(subst -,_,$(patsubst upload-%,%,$@)) -t upload --upload-port "$$PORT"
+
+# Interactive monitor that can also send keystrokes (make view only reads).
+# Needed for lora_test, which transmits one packet when you type t.
+monitor:
+	@if [ -z "$$PORT" ]; then \
+	  printf '%s\n' 'PORT is required. Run make ports, identify the board, then retry with PORT=...'; \
+	  exit 2; \
+	fi
+	@"$$PIO" device monitor -p "$$PORT" -b 115200

@@ -43,7 +43,18 @@ connect one at a time to establish which port belongs to which board.
 ```sh
 make upload-sender PORT=/dev/cu.YOUR_SENDER_PORT
 make upload-receiver PORT=/dev/cu.YOUR_RECEIVER_PORT
+make upload-listener-test PORT=/dev/cu.YOUR_TEST_BOARD_PORT
+make upload-beeper-test PORT=/dev/cu.YOUR_OTHER_BOARD_PORT
 ```
+
+`upload-beeper-test` flashes a tone generator (`src/beeper_test.cpp`, environment
+`beeper_test`) to a second board, which drives a piezo on GPIO 21 in a 500 ms
+on / 1000 ms off pattern and prints `beep:on`/`beep:off` lines.
+
+`upload-listener-test` flashes the piezo listener (`src/listener_test.cpp`,
+environment `listener_test`) in place of the board's normal firmware. It prints
+`rms:<value> peak:<value>` lines and lights the built-in LED on a knock. Afterwards,
+re-upload sender or receiver firmware to bring that board back to its normal role.
 
 Replace the example ports with the actual ports from `make ports`. Each command
 builds the selected firmware and uploads it in one step. The sender is the board

@@ -17,6 +17,8 @@ Power off before wiring. Use these GPIO numbers, not physical pin positions:
 | MISO | MISO / GPIO19 |
 | SCK | SCK / GPIO5 |
 | G0 / DIO0 | GPIO12 |
+| SOS button (other leg to GND) | GPIO14 |
+| SOS LED (+ via 220–330 Ω, − to GND) | GPIO21 |
 
 Leave EN and G1–G5 disconnected. Attach a 433 MHz antenna before transmitting.
 GPIO12 is a boot strapping pin: if the ESP32 fails to boot with the radio
@@ -34,16 +36,34 @@ When ready to replace the firmware on the physically identified test board,
 close other serial monitors/recorders and run these commands using its actual port:
 
 ```sh
-pio run -e lora_test -t upload --upload-port <test-board-port>
-pio device monitor -p <test-board-port> -b 115200
+make upload-lora-test PORT=<test-board-port>
+make monitor PORT=<test-board-port>
 ```
+
+These wrap `pio run -e lora_test -t upload --upload-port <port>` and
+`pio device monitor -p <port> -b 115200`. Use `make monitor`, not `make view`:
+`view` only reads, so it cannot send the `t` key. Press Ctrl+C to exit the monitor.
 
 Use your installed PlatformIO executable if `pio` is not on PATH. Reset the
 board after opening the monitor to see startup output. `PASS` means the radio
 initialized over SPI; failure suggests checking wiring and power.
 
 The test listens by default. Type `t` to send one numbered packet at 5 dBm;
-there is no automatic repeat. TX completion alone does not prove reception.
+there is no automatic repeat.
+
+Local button/LED check (no radio needed): at startup the GPIO21 LED blinks
+3 times and the serial output reports whether the button reads released (OK)
+or pressed (likely miswired). In `make monitor`, type `l` to light the LED
+for 1 second, or `b` to toggle button test mode, where each press/release is
+printed and the LED follows the button without sending anything. These checks
+still work if radio initialization fails.
+
+SOS button: wire a push button between GPIO14 and GND (internal pull-up, no
+resistor needed). Each press sends one `SOS #<n>` packet. A receiving board
+prints any packet starting with `SOS` as `!!! SOS RECEIVED !!! (SOS #<n>)`
+with RSSI/SNR and lights the LED on GPIO21 for 5 seconds (another SOS
+restarts the 5 seconds); other packets still print as `RX ...`. There is no
+acknowledgement or retry, so the sender cannot tell whether the SOS arrived. TX completion alone does not prove reception.
 For an over-the-air test, use a second ESP32/RFM96W running this sketch with
 its own matching wiring. Send from one board and look for `RX` plus the matching
 packet number on the other, then test the reverse direction. Both use 433 MHz,
