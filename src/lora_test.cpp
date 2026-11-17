@@ -34,9 +34,10 @@ uint32_t packetNumber = 0;
 int buttonReading = HIGH;
 int buttonStable = HIGH;
 uint32_t buttonChangedAt = 0;
+uint8_t message[255];
+size_t messageLength = 0;
+bool messageOverflow = false;
 
-// Sends "<label> #<n>". Shared by the t command and the SOS button so both use
-// the same packet counter and report failures the same way.
 // Turns the LED on for durationMs without blocking; the loop turns it off.
 void lightLed(uint32_t durationMs) {
   digitalWrite(sosLed, HIGH);
@@ -45,16 +46,24 @@ void lightLed(uint32_t durationMs) {
   sosLedDuration = durationMs;
 }
 
-void sendPacket(const char *label) {
+// Starts a packet, reporting failure. Shared by numbered and typed sends.
+bool beginTx() {
   if (!radioReady) {
-    Serial.printf("FAIL: radio not initialized; %s not sent.\n", label);
-    return;
+    Serial.println("FAIL: radio not initialized; nothing sent.");
+    return false;
   }
-  const uint32_t number = ++packetNumber;
   if (!LoRa.beginPacket()) {
     Serial.println("FAIL: could not start TX.");
-    return;
+    return false;
   }
+  return true;
+}
+
+// Sends "<label> #<n>". Shared by the t command and the SOS button so both use
+// the same packet counter and report failures the same way.
+void sendPacket(const char *label) {
+  if (!beginTx()) return;
+  const uint32_t number = ++packetNumber;
   LoRa.print(label);
   LoRa.print(" #");
   LoRa.print(number);
@@ -64,6 +73,42 @@ void sendPacket(const char *label) {
   } else {
     Serial.println("FAIL: TX did not complete.");
   }
+}
+
+// Handles one completed serial line. A line that is exactly t, l or b (any case)
+// is a command; any other line is sent as typed text.
+void handleLine() {
+  if (messageOverflow) {
+    Serial.println("FAIL: message exceeds 255 bytes; nothing sent.");
+    return;
+  }
+  if (messageLength == 0) return;
+  if (messageLength == 1) {
+    const char command = static_cast<char>(message[0]);
+    if (command == 't' || command == 'T') {
+      sendPacket("RFM96W test");
+      return;
+    }
+    if (command == 'l' || command == 'L') {
+      Serial.println("LED check: GPIO21 LED on for 1 second.");
+      lightLed(1000);
+      return;
+    }
+    if (command == 'b' || command == 'B') {
+      buttonTestMode = !buttonTestMode;
+      sosLedOn = false;
+      digitalWrite(sosLed, LOW);
+      Serial.println(buttonTestMode
+                         ? "Button test mode ON: press the button; LED follows it. No SOS is sent. Type b + Enter to exit."
+                         : "Button test mode OFF: button sends SOS again.");
+      return;
+    }
+  }
+  if (!beginTx()) return;
+  LoRa.write(message, messageLength);
+  Serial.println(LoRa.endPacket()
+      ? "TX complete (delivery unconfirmed)."
+      : "FAIL: TX did not complete.");
 }
 
 void setup() {
@@ -89,9 +134,9 @@ void setup() {
   if (buttonStable == LOW) {
     Serial.println("WARN: button reads PRESSED at startup. If untouched, check it goes GPIO14 -> button -> GND.");
   } else {
-    Serial.println("Button check: reads released (OK). Type b to test presses without transmitting.");
+    Serial.println("Button check: reads released (OK). Type b + Enter to test presses without transmitting.");
   }
-  Serial.println("Commands: l = LED on 1 s, b = button test mode on/off, t = send test packet.");
+  Serial.println("Commands (press Enter after each): l = LED on 1 s, b = button test mode on/off, t = send test packet.");
 
   SPI.begin(radioSck, radioMiso, radioMosi, radioCs);
   LoRa.setPins(radioCs, radioReset, radioDio0);
@@ -108,7 +153,8 @@ void setup() {
   LoRa.enableCrc();
   LoRa.setTxPower(5);
   Serial.println("PASS: radio initialized over SPI. This does not verify the RF link or G0 wire.");
-  Serial.println("Listening. Attach a 433 MHz antenna before typing t or pressing the SOS button.");
+  Serial.println("Listening. Attach a 433 MHz antenna before transmitting or pressing the SOS button.");
+  Serial.println("Type a message and press Enter to send (255 bytes max). t + Enter sends a numbered test.");
   Serial.println("Use a second matching radio to verify reception; TX completion is not an acknowledgement.");
 }
 
@@ -160,19 +206,28 @@ void loop() {
   }
 
   if (Serial.available()) {
-    char command = Serial.read();
-    if (command == 't' || command == 'T') {
-      sendPacket("RFM96W test");
-    } else if (command == 'l' || command == 'L') {
-      Serial.println("LED check: GPIO21 LED on for 1 second.");
-      lightLed(1000);
-    } else if (command == 'b' || command == 'B') {
-      buttonTestMode = !buttonTestMode;
-      sosLedOn = false;
-      digitalWrite(sosLed, LOW);
-      Serial.println(buttonTestMode
-                         ? "Button test mode ON: press the button; LED follows it. No SOS is sent. Type b to exit."
-                         : "Button test mode OFF: button sends SOS again.");
+    int input = Serial.read();
+    if (input == '\r' || input == '\n') {
+      // CRLF is safe: the second terminator sees an empty buffer.
+      if (messageLength > 0 || messageOverflow) {
+        Serial.println();
+        handleLine();
+        messageLength = 0;
+        messageOverflow = false;
+      }
+    } else if (input == 8 || input == 127) {
+      if (!messageOverflow && messageLength > 0) {
+        --messageLength;
+        Serial.print("\b \b");
+      }
+    } else if (input >= 32) {
+      if (messageLength < sizeof(message) && !messageOverflow) {
+        message[messageLength++] = static_cast<uint8_t>(input);
+        Serial.write(input);
+      } else {
+        // Discard the entire oversized line rather than sending truncated text.
+        messageOverflow = true;
+      }
     }
   }
   delay(1);

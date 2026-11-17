@@ -48,24 +48,31 @@ Use your installed PlatformIO executable if `pio` is not on PATH. Reset the
 board after opening the monitor to see startup output. `PASS` means the radio
 initialized over SPI; failure suggests checking wiring and power.
 
-The test listens by default. Type `t` to send one numbered packet at 5 dBm;
-there is no automatic repeat.
+The test listens by default. Type a word or sentence and press Enter to send it at 5 dBm.
+For example, `hello` + Enter appears as `RX 5 bytes: hello` on the other board.
+Both CR and LF line endings work. Blank lines are ignored. Messages over 255
+bytes are rejected in full; nothing is sent. Backspace edits the current line
+until overflow; after overflow, press Enter to discard and start again.
+A line that is exactly `t`, `l` or `b` (any case) is a command, not text:
+`t` + Enter sends a numbered test packet; there is no automatic repeat.
 
 Local button/LED check (no radio needed): at startup the GPIO21 LED blinks
 3 times and the serial output reports whether the button reads released (OK)
-or pressed (likely miswired). In `make monitor`, type `l` to light the LED
-for 1 second, or `b` to toggle button test mode, where each press/release is
+or pressed (likely miswired). In `make monitor`, type `l` + Enter to light the LED
+for 1 second, or `b` + Enter to toggle button test mode, where each press/release is
 printed and the LED follows the button without sending anything. These checks
 still work if radio initialization fails.
 
 SOS button: wire a push button between GPIO14 and GND (internal pull-up, no
 resistor needed). Each press sends one `SOS #<n>` packet. A receiving board
-prints any packet starting with `SOS` as `!!! SOS RECEIVED !!! (SOS #<n>)`
-with RSSI/SNR and lights the LED on GPIO21 for 5 seconds (another SOS
-restarts the 5 seconds); other packets still print as `RX ...`. There is no
-acknowledgement or retry, so the sender cannot tell whether the SOS arrived. TX completion alone does not prove reception.
+prints any packet starting with `SOS` (including typed text such as `SOS help`)
+as `!!! SOS RECEIVED !!! (<text>)` with RSSI/SNR and lights the LED on GPIO21
+for 5 seconds (another SOS restarts the 5 seconds); other packets still print as
+`RX ...`. There is no acknowledgement or retry, so the sender cannot tell whether
+the SOS arrived. TX completion alone does not prove reception.
 For an over-the-air test, use a second ESP32/RFM96W running this sketch with
-its own matching wiring. Send from one board and look for `RX` plus the matching
+its own matching wiring. After updating this firmware, re-upload to each board that will send typed text.
+Send from one board and look for `RX` plus the matching
 packet number on the other, then test the reverse direction. Both use 433 MHz,
 SF7, 125 kHz bandwidth, coding rate 4/5, sync word 0x12 and CRC enabled.
 

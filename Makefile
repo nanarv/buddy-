@@ -27,11 +27,11 @@ help:
 	  'make upload-listener-test PORT=... Flash the piezo listener (src/listener_test.cpp)' \
 	  'make upload-beeper-test PORT=...  Flash the tone generator for the listener to hear' \
 	  'make upload-lora-test PORT=...    Flash the RFM96W LoRa test (see tools/LORA_TEST.md)' \
-	  'make monitor PORT=...             Interactive serial monitor (type t to send a LoRa packet)' \
+	  'make monitor PORT=...             Interactive serial monitor (type text + Enter to send LoRa)' \
 	  '' \
 	  'Vibration: wire the motor to the observer receiver GPIO27, then upload-receiver.' \
-	  'After a successful upload, valid SpO2 below the configured threshold (default 97%)' \
-	  'triggers one five-second pulse. Recovery re-arms it; invalid/stale data stops it early.' \
+	  'After a successful upload, valid SpO2 below the configured threshold (default 98%)' \
+	  'keeps the alarm ON. At/above threshold or invalid/stale data turns it OFF.' \
 	  'It runs on the board even when make view is closed. No separate enable command is needed.' \
 	  'make test-alert only simulates the logic; it does not activate the physical motor.' \
 	  '' \
@@ -73,7 +73,7 @@ upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lor
 	@"$$PIO" run -e $(subst -,_,$(patsubst upload-%,%,$@)) -t upload --upload-port "$$PORT"
 
 # Interactive monitor that can also send keystrokes (make view only reads).
-# Needed for lora_test, which transmits one packet when you type t.
+# Needed for lora_test, which transmits each line typed + Enter.
 monitor:
 	@if [ -z "$$PORT" ]; then \
 	  printf '%s\n' 'PORT is required. Run make ports, identify the board, then retry with PORT=...'; \
