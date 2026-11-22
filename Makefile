@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help setup view record ports test test-alert upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test monitor
+.PHONY: help setup view record ports test test-alert upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test upload-lora-test-board1 upload-lora-test-lite upload-peripheral-test-lite monitor
 
 UV ?= uv
 export PIO ?= $(if $(wildcard $(HOME)/.platformio/penv/bin/pio),$(HOME)/.platformio/penv/bin/pio,pio)
@@ -27,6 +27,9 @@ help:
 	  'make upload-listener-test PORT=... Flash the piezo listener (src/listener_test.cpp)' \
 	  'make upload-beeper-test PORT=...  Flash the tone generator for the listener to hear' \
 	  'make upload-lora-test PORT=...    Flash the RFM96W LoRa test (see tools/LORA_TEST.md)' \
+	  'make upload-lora-test-board1 PORT=... LoRa test for board 1 (SCK 26, G0 25)' \
+	  'make upload-lora-test-lite PORT=... Flash the LoRa test for the ESP32 Lite board' \
+	  'make upload-peripheral-test-lite PORT=... Test the Lite heart-rate sensor and buzzer' \
 	  'make monitor PORT=...             Interactive serial monitor (type text + Enter to send LoRa)' \
 	  '' \
 	  'Vibration: wire the motor to the observer receiver GPIO27, then upload-receiver.' \
@@ -64,7 +67,7 @@ test-alert:
 # upload-receiver includes src/vibration.cpp: after successful upload the board
 # automatically drives the motor for valid low SpO2. view/record only read output.
 # Target hyphens map to environment underscores (upload-listener-test -> listener_test).
-upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test:
+upload-sender upload-receiver upload-listener-test upload-beeper-test upload-lora-test upload-lora-test-board1 upload-lora-test-lite upload-peripheral-test-lite:
 	@if [ -z "$$PORT" ]; then \
 	  printf '%s\n' 'PORT is required for uploads. Run make ports, identify the board, then retry with PORT=...'; \
 	  exit 2; \

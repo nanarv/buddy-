@@ -8,8 +8,17 @@ constexpr int radioReset = 27;
 constexpr int radioCs = 33;
 constexpr int radioMosi = 18;
 constexpr int radioMiso = 19;
-constexpr int radioSck = 5;
-constexpr int radioDio0 = 15; // G0 wiring in the CAD reference.
+// Pins default to the CAD wiring (SCK5, G0 15). Board 1 overrides them through
+// the lora_test_board1 environment: its SCK pad (GPIO5) is dead, so SCK goes to
+// A0/GPIO26, and its G0 goes to A1/GPIO25.
+#ifndef LORA_SCK
+#define LORA_SCK 5
+#endif
+#ifndef LORA_DIO0
+#define LORA_DIO0 15 // G0 wiring in the CAD reference.
+#endif
+constexpr int radioSck = LORA_SCK;
+constexpr int radioDio0 = LORA_DIO0;
 
 // SOS button: wired between GPIO14 and GND, using the internal pull-up, so the
 // pin reads LOW while pressed. One press sends one SOS packet (no auto-repeat).
@@ -118,7 +127,8 @@ void setup() {
   digitalWrite(sosLed, LOW);
   delay(1000);
   Serial.println("RFM96W standalone test: 433 MHz");
-  Serial.println("RST=27 CS=33 MOSI=18 MISO=19 SCK=5 G0=15 SOS button=14 (to GND) SOS LED=21");
+  Serial.printf("RST=27 CS=33 MOSI=18 MISO=19 SCK=%d G0=%d SOS button=14 (to GND) SOS LED=21\n",
+                radioSck, radioDio0);
 
   // Local check before the radio: blink the LED so its wiring can be seen.
   Serial.println("LED check: GPIO21 LED should blink 3 times now.");

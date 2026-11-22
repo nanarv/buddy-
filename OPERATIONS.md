@@ -1,19 +1,49 @@
 # Operations and agent handoff
 
-Last updated: 2026-11-17. Read `AGENTS.md` for project rules and
+Last updated: 2026-11-21. Read `AGENTS.md` for project rules and
 `tools/README.md` for full commands. Check live Git status and remotes before
 working; this document is a handoff snapshot, not a substitute for inspection.
+
+## ⚠️ Hardware warning: LoRa test board 1 has a dead SCK pad
+
+On the LoRa test Feather that currently passes `lora_test` (board 1), the
+**Feather's SCK pad (GPIO5) is broken**: GPIO5 toggles inside the ESP32 but the
+pad stays near 0 V, most likely a pad or trace lifted by soldering heat.
+**Do not use the SCK pad on that board.** The radio's SCK wire is soldered to
+**A0 / GPIO26** instead; flash board 1 with `make upload-lora-test-board1`
+(environment `lora_test_board1`: SCK 26, G0 25). Plain `lora_test` now uses the
+CAD pins (SCK5, G0 15) and will fail on board 1.
+Any other firmware run on board 1 that uses the radio (for example a future
+glove build) must also put SCK on GPIO26; SPI on the ESP32 can use any GPIO.
+After the move, the 2026-11-17 startup check printed `PASS: radio initialized
+over SPI`. A second Feather (board 2) read 0 V on its 3V pin and dropped off USB;
+it has not been diagnosed or fixed yet.
+
+An ESP32 Lite (Wemos/LOLIN32 Lite) with its own RFM96W now runs
+`lora_test_lite` (`make upload-lora-test-lite PORT=...`; pins in
+`tools/LORA_TEST.md`). On 2026-11-19 it printed `PASS: radio initialized over
+SPI` once the radio's VIN was moved from the Lite's VIN pin to its 3V pin.
+On 2026-11-21 the Lite and board 1 exchanged LoRa packets in both directions
+(typed text and `t` test packets, RSSI about -37 to -41 dBm, SNR about 10 dB,
+boards on the same desk). Range and G0 wiring remain untested.
+
+Requirements for the combined glove firmware (packets, G0 interrupt, pins,
+SOS, sensor error handling) are collected in `GLOVE_FIRMWARE_NOTES.md`.
 
 ## Current baseline
 
 - Standalone `src/lora_test.cpp` / `lora_test` environment checks the RFM96W
   at 433 MHz with HUZZAH32 labeled SPI pins (MOSI18/MISO19/SCK5),
-  RST27, CS33 and G0 on GPIO15 (corrected to match the CAD reference). It listens
+  RST27, CS33 and G0 on GPIO15 (corrected to match the CAD reference). Board 1
+  uses the `lora_test_board1` environment instead: SCK on A0/GPIO26 (see the
+  hardware warning above) and G0 on A1/GPIO25. It listens
   and sends typed serial messages on Enter (maximum 255 bytes); `t` + Enter
   sends a numbered test packet. Oversized lines are rejected without transmission.
   See `tools/LORA_TEST.md`.
-  PlatformIO build and upload passed; the 2026-11-17 startup check failed radio
-  initialization. RF communication and G0 wiring remain unverified. Existing firmware
+  PlatformIO build and upload passed. The first 2026-11-17 startup check failed
+  radio initialization; after SCK moved to GPIO26 on board 1 it printed PASS.
+  Over-the-air exchange with the ESP32 Lite passed both ways on 2026-11-21 at
+  desk range; longer range and G0 wiring remain unverified. Existing firmware
   entry points, packet contract, and default build environment are unchanged.
 
 - Vibration control now runs only on the observer receiver. Move the module IN

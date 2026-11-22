@@ -5,6 +5,12 @@ It targets the Adafruit HUZZAH32 ESP32 Feather shown in the wiring photo,
 using its labeled SPI pins (`featheresp32` board configuration).
 The existing default environment and sensor/receiver firmwares are unchanged.
 
+> **⚠️ Board 1 has a dead SCK pad.** On the first test Feather, the pad labelled
+> SCK (GPIO5) no longer connects to the ESP32. Its radio SCK wire goes to
+> **A0 / GPIO26**. Flash board 1 with `make upload-lora-test-board1`, which builds
+> this sketch with SCK on GPIO26 and G0 on GPIO25. Don't move SCK back to the
+> SCK pad. See `OPERATIONS.md`.
+
 Power off before wiring. Use these GPIO numbers, not physical pin positions:
 
 | RFM96W | ESP32 |
@@ -15,15 +21,42 @@ Power off before wiring. Use these GPIO numbers, not physical pin positions:
 | CS | GPIO33 |
 | MOSI | MOSI / GPIO18 |
 | MISO | MISO / GPIO19 |
-| SCK | SCK / GPIO5 |
-| G0 / DIO0 | GPIO15 |
+| SCK | SCK / GPIO5 (board 1: A0 / GPIO26, see below) |
+| G0 / DIO0 | GPIO15 (board 1: A1 / GPIO25) |
 | SOS button (other leg to GND) | GPIO14 |
 | SOS LED (+ via 220–330 Ω, − to GND) | GPIO21 |
+
+## ESP32 Lite version
+
+`src/lora_test_lite.cpp` (environment `lora_test_lite`, board `lolin32_lite`) is
+the same test for the ESP32 Lite (Wemos/LOLIN32 Lite). Radio settings match,
+so a Feather and a Lite running these tests can talk to each other.
+
+| RFM96W | ESP32 Lite |
+| --- | --- |
+| VIN | 3V3 |
+| GND | GND |
+| RST | GPIO27 |
+| CS | GPIO33 |
+| MOSI | GPIO23 |
+| MISO | GPIO19 |
+| SCK | GPIO18 |
+| G0 / DIO0 | GPIO25 |
+| SOS button (other leg to GND) | GPIO14 |
+| SOS LED | onboard LED on GPIO22 (active LOW, no wiring) |
+
+Upload with `make upload-lora-test-lite PORT=<lite-port>`.
 
 Leave EN and G1–G5 disconnected. Attach a 433 MHz antenna before transmitting.
 G0/DIO0 uses GPIO15 to match the CAD reference. This test polls the radio
 over SPI, so successful initialization does not verify the G0 connection.
 If external wiring prevents boot, disconnect power before isolating connections.
+
+**Board 1 build.** Board 1 is wired differently: SCK on A0 / GPIO26 (its SCK
+pad is dead) and G0 on A1 / GPIO25 (moved off strapping pin GPIO12; its G0 was
+verified on 2026-11-21). Flash it with `make upload-lora-test-board1 PORT=...`
+(environment `lora_test_board1`, same source with `-DLORA_SCK=26 -DLORA_DIO0=25`).
+Do not flash plain `lora_test` to board 1.
 Disconnect any vibration module from GPIO27 before using that pin for radio reset.
 
 Build without uploading:

@@ -249,3 +249,16 @@ gets pyserial from `pyproject.toml`. Run the transport/persistence tests with
 See [LORA_TEST.md](LORA_TEST.md) for the isolated RFM96W LoRa test,
 current wiring, build/upload commands, sending typed messages with Enter, and
 interpreting serial output.
+
+> **⚠️ LoRa test board 1 has a broken SCK pad.** On that HUZZAH32 Feather, the
+> pad labelled SCK (GPIO5) no longer connects to the ESP32. The radio's SCK wire
+> is soldered to **A0 / GPIO26**; flash it with `make upload-lora-test-board1`
+> (SCK 26, G0 25), not plain `lora_test`, which uses the CAD pins.
+> Don't move SCK back to the SCK pad, and use GPIO26 for SCK in any other
+> firmware that runs the radio on that board. Details are in `OPERATIONS.md`.
+
+## Glove firmware notes
+
+Requirements and lessons for the combined glove firmware (G0 interrupt, packet
+validation, SOS acknowledgement, pins, sensor error handling, tap detection) are
+in [GLOVE_FIRMWARE_NOTES.md](../GLOVE_FIRMWARE_NOTES.md).

@@ -1,5 +1,29 @@
 # Change log
 
+## 2026-11-21 — Board 1 LoRa build, ESP32 Lite tests, and glove firmware notes
+
+- Merge Luke's main through faebeb4 (shared lora_test G0/DIO0 on GPIO15 to match
+  the CAD). Keep the CAD pins as lora_test defaults (SCK5, G0 15) and make them
+  overridable with LORA_SCK/LORA_DIO0. Add `lora_test_board1`
+  (`make upload-lora-test-board1`): board 1's SCK pad is dead, so SCK is on
+  A0/GPIO26, and its G0 is on A1/GPIO25.
+- Add `lora_test_lite` and `peripheral_test_lite` (MAX30102 on SDA16/SCL17,
+  active buzzer on GPIO32) for the ESP32 Lite (`lolin32_lite`), with make targets.
+- Add board 1 dead-SCK warnings and a "Glove firmware notes" section to
+  tools/README.md: G0 interrupt instead of polling, packet validation, SOS
+  acknowledgement and retries, collision jitter, pins, sensor error handling,
+  tap-detection results, and that 433 MHz does not propagate underwater.
+- Hardware results (user's bench, 2026-11-17 to 2026-11-21): board 1 and the
+  Lite both passed radio init; LoRa packets passed both ways at desk range
+  (RSSI about -21 to -48 dBm); G0 raised on received packets on both boards;
+  MAX30102 part ID 0x15 and finger detection passed on both; buzzers beeped.
+  One packet was lost to a timer collision and one garbage packet was received.
+  lora_test_board1 was flashed to board 1 after the merge and printed PASS.
+- Verification: PlatformIO builds passed for sender, receiver, lora_test,
+  lora_test_board1, lora_test_lite and peripheral_test_lite. Range, underwater
+  behaviour, tap detection during normal movement, and sensor accuracy remain
+  unverified. Board 2 (3V rail at 0 V) is still undiagnosed.
+
 ## 2026-11-17 — Match standalone LoRa DIO0 to CAD
 
 - Change lora_test G0/DIO0 from GPIO12 to GPIO15 to match the supplied CAD
