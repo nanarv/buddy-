@@ -9,7 +9,7 @@ constexpr int radioCs = 33;
 constexpr int radioMosi = 18;
 constexpr int radioMiso = 19;
 constexpr int radioSck = 5;
-constexpr int radioDio0 = 12;
+constexpr int radioDio0 = 15; // G0 wiring in the CAD reference.
 
 // SOS button: wired between GPIO14 and GND, using the internal pull-up, so the
 // pin reads LOW while pressed. One press sends one SOS packet (no auto-repeat).
@@ -118,7 +118,7 @@ void setup() {
   digitalWrite(sosLed, LOW);
   delay(1000);
   Serial.println("RFM96W standalone test: 433 MHz");
-  Serial.println("RST=27 CS=33 MOSI=18 MISO=19 SCK=5 G0=12 SOS button=14 (to GND) SOS LED=21");
+  Serial.println("RST=27 CS=33 MOSI=18 MISO=19 SCK=5 G0=15 SOS button=14 (to GND) SOS LED=21");
 
   // Local check before the radio: blink the LED so its wiring can be seen.
   Serial.println("LED check: GPIO21 LED should blink 3 times now.");
