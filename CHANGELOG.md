@@ -13,6 +13,10 @@
   tools/README.md: G0 interrupt instead of polling, packet validation, SOS
   acknowledgement and retries, collision jitter, pins, sensor error handling,
   tap-detection results, and that 433 MHz does not propagate underwater.
+- Add piezo tap test firmware (from 2026-11-17): `beeper_test` drives a piezo on
+  GPIO 21 (500 ms on / 1000 ms off) and `listener_test` prints `rms`/`peak` lines
+  and lights the LED on a knock, with `make upload-beeper-test` and
+  `make upload-listener-test` targets. Both replace a board's normal firmware.
 - Hardware results (user's bench, 2026-11-17 to 2026-11-21): board 1 and the
   Lite both passed radio init; LoRa packets passed both ways at desk range
   (RSSI about -21 to -48 dBm); G0 raised on received packets on both boards;
@@ -20,7 +24,8 @@
   One packet was lost to a timer collision and one garbage packet was received.
   lora_test_board1 was flashed to board 1 after the merge and printed PASS.
 - Verification: PlatformIO builds passed for sender, receiver, lora_test,
-  lora_test_board1, lora_test_lite and peripheral_test_lite. Range, underwater
+  lora_test_board1, lora_test_lite and peripheral_test_lite; beeper_test and
+  listener_test also built successfully before this push (build only). Range, underwater
   behaviour, tap detection during normal movement, and sensor accuracy remain
   unverified. Board 2 (3V rail at 0 V) is still undiagnosed.
 
